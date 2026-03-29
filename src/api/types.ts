@@ -26,8 +26,8 @@ export type DateOfBirth = z.infer<typeof DateOfBirthSchema>;
 // --- Company Profile ---
 
 export const AccountingReferenceDateSchema = z.object({
-  day: z.number().optional(),
-  month: z.number().optional(),
+  day: z.union([z.string(), z.number()]).optional(),
+  month: z.union([z.string(), z.number()]).optional(),
 });
 
 export const LastAccountsSchema = z.object({
@@ -247,10 +247,10 @@ export const FilingResolutionSchema = z.object({
   category: z.string(),
   description: z.string(),
   document_id: z.string().optional(),
-  receive_date: z.string(),
+  receive_date: z.string().optional(),
   subcategory: z.string(),
   type: z.string(),
-});
+}).passthrough();
 
 export const FilingItemSchema = z.object({
   annotations: z.array(FilingAnnotationSchema).optional(),
@@ -259,7 +259,7 @@ export const FilingItemSchema = z.object({
   category: z.string(),
   date: z.string(),
   description: z.string(),
-  description_values: z.record(z.string()).optional(),
+  description_values: z.record(z.union([z.string(), z.array(z.unknown()), z.unknown()])).optional(),
   links: z.object({
     document_metadata: z.string().optional(),
     self: z.string().optional(),

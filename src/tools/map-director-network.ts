@@ -91,7 +91,7 @@ export async function mapDirectorNetwork(
     try {
       const { data: officers } = await client.getOfficers(cn);
       for (const officer of officers.items) {
-        if (!officer.resigned_on && officer.name !== name) {
+        if (!officer.resigned_on && !isSamePerson(officer.name, name)) {
           const existing = coDirectorMap.get(officer.name) ?? new Set();
           const companyName = appointments.find(
             a => a.appointed_to?.company_number === cn
@@ -154,6 +154,17 @@ export async function mapDirectorNetwork(
     flags,
     attribution: 'Contains public sector information licensed under the Open Government Licence v3.0',
   };
+}
+
+function normalizeName(name: string | null): string {
+  if (!name) return '';
+  // "GALEA, Lucian Teodor" and "Lucian Teodor GALEA" should match
+  return name.toLowerCase().replace(/[,.\s]+/g, ' ').trim().split(' ').sort().join(' ');
+}
+
+function isSamePerson(a: string, b: string | null): boolean {
+  if (!b) return false;
+  return normalizeName(a) === normalizeName(b);
 }
 
 function calculateAverageTenure(items: OfficerAppointmentItem[]): number {
