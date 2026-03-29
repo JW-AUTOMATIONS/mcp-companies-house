@@ -3,6 +3,18 @@
   "version": "0.1.0",
   "description": "Intelligent UK Companies House MCP server. Director network mapping, ownership chain tracing, filing anomaly detection, deep due diligence — not just an API wrapper. Covers 5M+ UK companies.",
   "license": "MIT",
+  "author": {
+    "name": "Jordan Wallace",
+    "url": "https://github.com/passiveinc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/passiveinc/mcp-companies-house"
+  },
+  "homepage": "https://github.com/passiveinc/mcp-companies-house#readme",
+  "bugs": {
+    "url": "https://github.com/passiveinc/mcp-companies-house/issues"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -10,20 +22,22 @@
   },
   "files": ["dist"],
   "keywords": [
-    "mcp", "mcp-server", "companies-house", "uk-companies",
+    "mcp", "mcp-server", "model-context-protocol",
+    "companies-house", "uk-companies", "company-data",
     "due-diligence", "kyc", "aml", "company-search",
     "director-network", "beneficial-ownership", "risk-scoring",
-    "uk-business", "company-intelligence"
+    "uk-business", "company-intelligence", "compliance",
+    "ownership-chain", "filing-anomaly", "psc"
   ],
   "engines": { "node": ">=18" },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/index.js",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",

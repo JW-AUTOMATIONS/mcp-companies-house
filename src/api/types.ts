@@ -235,13 +235,13 @@ export const FilingAnnotationSchema = z.object({
   annotation: z.string().optional(),
   date: z.string(),
   description: z.string(),
-});
+}).passthrough();
 
 export const AssociatedFilingSchema = z.object({
   date: z.string(),
   description: z.string(),
   type: z.string(),
-});
+}).passthrough();
 
 export const FilingResolutionSchema = z.object({
   category: z.string(),
@@ -267,7 +267,7 @@ export const FilingItemSchema = z.object({
   pages: z.number().optional(),
   paper_filed: z.boolean().optional(),
   resolutions: z.array(FilingResolutionSchema).optional(),
-  subcategory: z.string().optional(),
+  subcategory: z.union([z.string(), z.array(z.string())]).optional(),
   transaction_id: z.string(),
   type: z.string(),
 }).passthrough();
@@ -314,32 +314,32 @@ export const ChargeTransactionSchema = z.object({
   links: z.object({
     filing: z.string().optional(),
     insolvency_case: z.string().optional(),
-  }).optional(),
-});
+  }).passthrough().optional(),
+}).passthrough();
 
 export const ChargeItemSchema = z.object({
   acquired_on: z.string().optional(),
   assests_ceased_released: z.string().optional(),
   charge_code: z.string().optional(),
-  charge_number: z.number(),
-  classification: z.array(ChargeClassificationSchema).optional(),
+  charge_number: z.union([z.number(), z.string()]),
+  classification: z.union([ChargeClassificationSchema, z.array(ChargeClassificationSchema)]).optional(),
   covering_instrument_date: z.string().optional(),
   created_on: z.string().optional(),
   delivered_on: z.string().optional(),
   etag: z.string().optional(),
-  id: z.string(),
+  id: z.string().optional(),
   links: z.object({
     self: z.string().optional(),
   }).optional(),
   more_than_four_persons_entitled: z.boolean().optional(),
-  particulars: z.array(ChargeParticularsSchema).optional(),
+  particulars: z.union([ChargeParticularsSchema, z.array(ChargeParticularsSchema)]).optional(),
   persons_entitled: z.array(ChargePersonEntitledSchema).optional(),
   resolved_on: z.string().optional(),
   satisfied_on: z.string().optional(),
-  secured_details: z.array(z.object({
-    description: z.string().optional(),
-    type: z.string().optional(),
-  })).optional(),
+  secured_details: z.union([
+    z.object({ description: z.string().optional(), type: z.string().optional() }),
+    z.array(z.object({ description: z.string().optional(), type: z.string().optional() })),
+  ]).optional(),
   status: z.string(),
   transactions: z.array(ChargeTransactionSchema).optional(),
 }).passthrough();
@@ -366,15 +366,15 @@ export const InsolvencyPractitionerAddressSchema = z.object({
   locality: z.string().optional(),
   postal_code: z.string().optional(),
   region: z.string().optional(),
-});
+}).passthrough();
 
 export const InsolvencyPractitionerSchema = z.object({
-  address: z.array(InsolvencyPractitionerAddressSchema).optional(),
+  address: z.union([InsolvencyPractitionerAddressSchema, z.array(InsolvencyPractitionerAddressSchema)]).optional(),
   appointed_on: z.string().optional(),
   ceased_to_act_on: z.string().optional(),
   name: z.string(),
   role: z.string().optional(),
-});
+}).passthrough();
 
 export const InsolvencyCaseDateSchema = z.object({
   date: z.string(),

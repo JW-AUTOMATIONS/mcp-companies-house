@@ -91,7 +91,7 @@ export async function searchCompany(
     company_number: item.company_number,
     company_status: item.company_status ?? 'unknown',
     company_type: item.company_type ?? 'unknown',
-    sector: 'Use deep_due_diligence with company_number for sector classification',
+    sector: 'Unknown (use get_company_profile for sector)',
     date_of_creation: item.date_of_creation ?? null,
     date_of_cessation: item.date_of_cessation ?? null,
     registered_address: item.address_snippet ?? formatAddress(item.address),

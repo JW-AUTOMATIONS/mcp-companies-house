@@ -171,7 +171,7 @@ export async function deepDueDiligence(
       status: c.status,
       created_on: c.created_on ?? null,
       persons_entitled: c.persons_entitled?.map(pe => pe.name) ?? [],
-      description: c.particulars?.[0]?.description ?? null,
+      description: Array.isArray(c.particulars) ? c.particulars[0]?.description ?? null : c.particulars?.description ?? null,
     })),
     insolvency_cases: (insolvency?.data.cases ?? []).map(ic => ({
       type: ic.type,
