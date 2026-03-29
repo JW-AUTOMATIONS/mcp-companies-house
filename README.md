@@ -4,12 +4,13 @@ An intelligent MCP server for UK company data. Not an API wrapper — a compound
 
 ## What This Does
 
-Five compound tools that go far beyond raw API access:
+Six intelligent tools that go far beyond raw API access. Company numbers auto-normalize (pads short numbers, handles SC/NI/OC prefixes):
 
 | Tool | What It Does |
 |------|-------------|
+| `get_company_profile` | Quick single-company lookup: status, sector, SIC codes, filing deadlines, charges, insolvency flags, previous names |
 | `search_company` | Search UK companies by name with filtering by status, region, SIC code, and incorporation date range |
-| `deep_due_diligence` | Single-call company intelligence: profile, officers, PSCs, charges, insolvency, filings — with risk scoring and sector classification |
+| `deep_due_diligence` | Single-call company intelligence: profile, officers, PSCs, charges, insolvency, filings — with risk scoring, sector classification, and one-line summary |
 | `trace_ownership_chain` | Recursively trace beneficial ownership through corporate PSC chains. Detects circular structures and flags foreign entities |
 | `map_director_network` | Map all appointments for an officer, find co-directors across companies, flag serial directors and formation agents |
 | `detect_filing_anomalies` | Analyse filing history for red flags: overdue accounts, address churn, director turnover, filing gaps |
@@ -72,6 +73,15 @@ CH_API_KEY=your-key-here mcp-companies-house
 | `CH_PRO_KEY` | No | Pro tier key for shorter cache TTLs (fresher data) |
 
 ## Tool Details
+
+### `get_company_profile`
+
+Quick lookup for a single company. Fastest way to get company details.
+
+**Input:**
+- `company_number` (required) — UK company number (auto-pads, e.g. "123456" → "00123456")
+
+**Returns:** Name, status, type, sector, SIC codes, registered address, filing deadlines, charge/insolvency flags, previous names, company age.
 
 ### `search_company`
 

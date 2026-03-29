@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ChApiClient } from '../api/client.js';
 import type { CompanyProfile, FilingItem } from '../api/types.js';
+import { normalizeCompanyNumber } from '../shared/company-number.js';
 
 export const DetectFilingAnomaliesInputSchema = {
   company_number: z.string().describe('8-digit UK company number'),
@@ -44,13 +45,14 @@ export async function detectFilingAnomalies(
   client: ChApiClient,
   input: { company_number: string; lookback_months?: number },
 ): Promise<FilingAnomalyResult> {
+  const cn = normalizeCompanyNumber(input.company_number);
   const lookbackMonths = input.lookback_months ?? 24;
   const cutoffDate = new Date();
   cutoffDate.setMonth(cutoffDate.getMonth() - lookbackMonths);
 
   const [profileResult, filingsResult] = await Promise.all([
-    client.getCompanyProfile(input.company_number),
-    client.getFilingHistory(input.company_number, 0, 100),
+    client.getCompanyProfile(cn),
+    client.getFilingHistory(cn, 0, 100),
   ]);
 
   const profile = profileResult.data;
@@ -100,7 +102,7 @@ export async function detectFilingAnomalies(
   }
 
   return {
-    company_number: input.company_number,
+    company_number: cn,
     company_name: profile.company_name,
     anomalies,
     filing_health: filingHealth,

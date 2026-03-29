@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import type { ChApiClient } from '../api/client.js';
-import type { CompanyProfile, Officer, Psc, ChargeItem, FilingItem } from '../api/types.js';
+import type { CompanyProfile, Officer, OfficerList, Psc, ChargeItem, ChargeList, FilingItem } from '../api/types.js';
 import { assessRisk, type RiskSummary } from '../enrichment/risk-scoring.js';
 import { classifySector, classifySectors } from '../enrichment/sector-classify.js';
 import { CompanyNotFoundError } from '../shared/errors.js';
+import { normalizeCompanyNumber } from '../shared/company-number.js';
 import { createLogger, LogLevel } from '../shared/logger.js';
 
 const logger = createLogger('due-diligence', LogLevel.INFO);
@@ -69,6 +70,7 @@ export interface DueDiligenceResult {
     description: string;
     type: string;
   }>;
+  summary: string;
   risk_summary: RiskSummary;
   data_quality: {
     stale_sources: string[];
@@ -81,7 +83,7 @@ export async function deepDueDiligence(
   client: ChApiClient,
   input: { company_number: string },
 ): Promise<DueDiligenceResult> {
-  const cn = input.company_number;
+  const cn = normalizeCompanyNumber(input.company_number);
   const staleSources: string[] = [];
 
   // Fetch all data sources in parallel
@@ -182,6 +184,7 @@ export async function deepDueDiligence(
       description: f.description,
       type: f.type,
     })),
+    summary: buildSummary(p, riskSummary, officers?.data, charges?.data),
     risk_summary: riskSummary,
     data_quality: {
       stale_sources: staleSources,
@@ -189,6 +192,49 @@ export async function deepDueDiligence(
     },
     attribution: 'Contains public sector information licensed under the Open Government Licence v3.0',
   };
+}
+
+function buildSummary(
+  profile: CompanyProfile,
+  risk: RiskSummary,
+  officers?: OfficerList,
+  charges?: ChargeList,
+): string {
+  const parts: string[] = [];
+  const status = profile.company_status ?? 'unknown';
+  const sector = classifySector(profile.sic_codes);
+
+  // Age
+  if (profile.date_of_creation) {
+    const age = calculateAgeYears(profile.date_of_creation);
+    parts.push(`${status} ${age < 1 ? 'newly formed' : age + '-year-old'} ${sector !== 'Uncategorised' ? sector.toLowerCase() : ''} company`.replace(/  +/g, ' ').trim());
+  } else {
+    parts.push(`${status} company`);
+  }
+
+  // Risk
+  parts.push(`${risk.overall} risk`);
+
+  // Officers
+  const activeCount = officers?.active_count ?? 0;
+  if (activeCount > 0) {
+    parts.push(`${activeCount} active director${activeCount !== 1 ? 's' : ''}`);
+  }
+
+  // Charges
+  const chargeCount = charges?.items?.length ?? 0;
+  if (chargeCount > 0) {
+    const outstanding = charges?.items?.filter(c => c.status === 'outstanding').length ?? 0;
+    parts.push(`${chargeCount} charge${chargeCount !== 1 ? 's' : ''}${outstanding > 0 ? ` (${outstanding} outstanding)` : ''}`);
+  } else {
+    parts.push('no charges');
+  }
+
+  // Key flags
+  if (risk.overdue_filings) parts.push('OVERDUE FILINGS');
+  if (risk.insolvency_history) parts.push('INSOLVENCY HISTORY');
+
+  return parts.join(', ') + '.';
 }
 
 function extractSettled<T>(

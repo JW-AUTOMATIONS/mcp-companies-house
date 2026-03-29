@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ChApiClient } from '../api/client.js';
 import { CompanyNotFoundError } from '../shared/errors.js';
+import { normalizeCompanyNumber } from '../shared/company-number.js';
 import { createLogger, LogLevel } from '../shared/logger.js';
 
 const logger = createLogger('ownership-chain', LogLevel.INFO);
@@ -49,19 +50,21 @@ export async function traceOwnershipChain(
   const ubos: Array<{ name: string; type: string; trail: string[] }> = [];
   const visited = new Set<string>();
 
+  const cn = normalizeCompanyNumber(input.company_number);
+
   // Get root company name
-  const { data: rootProfile } = await client.getCompanyProfile(input.company_number);
+  const { data: rootProfile } = await client.getCompanyProfile(cn);
   const rootName = rootProfile.company_name;
 
   // Recursive trace
   await traceLevel(
-    client, input.company_number, rootName,
+    client, cn, rootName,
     0, maxDepth, chain, ubos, warnings, visited, [rootName],
   );
 
   return {
     company: rootName,
-    company_number: input.company_number,
+    company_number: cn,
     chain,
     ultimate_beneficial_owners: ubos,
     warnings,

@@ -8,6 +8,7 @@ import { TokenBucketRateLimiter } from './shared/rate-limiter.js';
 import { ChApiClient } from './api/client.js';
 import { ChMcpError } from './shared/errors.js';
 import { createLogger, LogLevel } from './shared/logger.js';
+import { getCompanyProfile, GetCompanyProfileInputSchema } from './tools/get-company-profile.js';
 import { searchCompany, SearchCompanyInputSchema } from './tools/search-company.js';
 import { deepDueDiligence, DeepDueDiligenceInputSchema } from './tools/deep-due-diligence.js';
 import { traceOwnershipChain, TraceOwnershipChainInputSchema } from './tools/trace-ownership-chain.js';
@@ -72,6 +73,26 @@ function toolError(error: unknown) {
     content: [{ type: 'text' as const, text: JSON.stringify({ code: 'INTERNAL_ERROR', message }) }],
   };
 }
+
+server.registerTool(
+  'get_company_profile',
+  {
+    title: 'Get Company Profile',
+    description:
+      'Quick lookup for a single UK company by number. Returns name, status, type, sector, registered address, ' +
+      'SIC codes, filing deadlines, previous names, and key flags (charges, insolvency). Lighter and faster than ' +
+      'deep_due_diligence — use this when you just need basic company information. Auto-pads short company numbers.',
+    inputSchema: GetCompanyProfileInputSchema,
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      return toolResult(await getCompanyProfile(client, args));
+    } catch (error) {
+      return toolError(error);
+    }
+  },
+);
 
 server.registerTool(
   'search_company',
