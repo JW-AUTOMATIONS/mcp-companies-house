@@ -1,0 +1,40 @@
+{
+  "name": "@passiveinc/mcp-companies-house",
+  "version": "0.1.0",
+  "description": "Intelligent UK Companies House MCP server. Director network mapping, ownership chain tracing, filing anomaly detection, deep due diligence — not just an API wrapper. Covers 5M+ UK companies.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-companies-house": "dist/index.js"
+  },
+  "files": ["dist"],
+  "keywords": [
+    "mcp", "mcp-server", "companies-house", "uk-companies",
+    "due-diligence", "kyc", "aml", "company-search",
+    "director-network", "beneficial-ownership", "risk-scoring",
+    "uk-business", "company-intelligence"
+  ],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "better-sqlite3": "^11.9.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.0"
+  }
+}
