@@ -166,6 +166,39 @@ describe('traceOwnershipChain', () => {
     }
   });
 
+  it('extracts non-percentage control types', async () => {
+    const { client, cache, dbPath } = setup();
+
+    const significantInfluencePscs = {
+      active_count: 1, ceased_count: 0,
+      items: [{
+        name: 'Ms Jane Doe',
+        natures_of_control: ['right-to-appoint-and-remove-directors'],
+        notified_on: '2021-03-01',
+        kind: 'individual-person-with-significant-control',
+      }],
+      items_per_page: 25, start_index: 0, total_results: 1,
+    };
+
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      let body: unknown = {};
+      if (url.includes('/persons-with-significant-control')) {
+        body = significantInfluencePscs;
+      } else {
+        body = PROFILE_A;
+      }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    });
+
+    try {
+      const result = await traceOwnershipChain(client, { company_number: '11111111' });
+      expect(result.chain[0].entities[0].ownership_percentage).toBe('board appointment rights');
+      expect(result.ultimate_beneficial_owners[0].name).toBe('Ms Jane Doe');
+    } finally {
+      cleanup(cache, dbPath);
+    }
+  });
+
   it('respects max_depth', async () => {
     const { client, cache, dbPath } = setup();
 

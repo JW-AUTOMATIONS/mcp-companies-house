@@ -36,6 +36,13 @@ const rateLimiter = new TokenBucketRateLimiter({ maxTokens: 600, refillRate: 2 }
 const isPro = process.env.CH_PRO_KEY ? true : false;
 const client = new ChApiClient({ apiKey: CH_API_KEY, cache, rateLimiter, isPro });
 
+// Prune expired cache entries on startup (>7 days old across all categories)
+import { CacheCategory } from './cache/ttl.js';
+const PRUNE_MAX_AGE = 7 * 24 * 60 * 60;
+for (const category of Object.values(CacheCategory)) {
+  cache.prune(category, PRUNE_MAX_AGE);
+}
+
 const server = new McpServer(
   {
     name: 'companies-house-intelligence',
@@ -169,6 +176,15 @@ server.registerTool(
   },
 );
 
+function shutdown() {
+  logger.info('Shutting down MCP server');
+  cache.close();
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -181,5 +197,6 @@ async function main() {
 
 main().catch((error) => {
   logger.error('Fatal error starting MCP server', { error: error instanceof Error ? error : new Error(String(error)) });
+  cache.close();
   process.exit(1);
 });

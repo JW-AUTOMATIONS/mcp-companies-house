@@ -23,6 +23,7 @@ export interface DueDiligenceResult {
     sic_codes: string[];
     date_of_creation: string | null;
     date_of_cessation: string | null;
+    age_years: number | null;
     registered_address: string;
     jurisdiction: string | null;
   };
@@ -131,6 +132,7 @@ export async function deepDueDiligence(
       sic_codes: p.sic_codes ?? [],
       date_of_creation: p.date_of_creation ?? null,
       date_of_cessation: p.date_of_cessation ?? null,
+      age_years: p.date_of_creation ? calculateAgeYears(p.date_of_creation) : null,
       registered_address: formatAddress(p.registered_office_address),
       jurisdiction: p.jurisdiction ?? null,
     },
@@ -216,6 +218,13 @@ function extractOfficerId(links: { officer?: { appointments?: string }; self?: s
   // Path format: /officers/{officer_id}/appointments
   const match = appointmentsPath.match(/\/officers\/([^/]+)/);
   return match?.[1] ?? null;
+}
+
+function calculateAgeYears(dateOfCreation: string): number {
+  const created = new Date(dateOfCreation).getTime();
+  if (Number.isNaN(created)) return 0;
+  const now = Date.now();
+  return Math.round(((now - created) / (365.25 * 24 * 60 * 60 * 1000)) * 10) / 10;
 }
 
 function formatAddress(address: Record<string, string | undefined> | undefined): string {

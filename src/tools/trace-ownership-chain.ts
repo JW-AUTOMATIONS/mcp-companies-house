@@ -158,9 +158,22 @@ async function traceLevel(
 
 function extractOwnershipPercentage(naturesOfControl: string[]): string | null {
   for (const nature of naturesOfControl) {
+    // Percentage-band controls (shares or voting rights)
     if (nature.includes('75-to-100')) return '75-100%';
     if (nature.includes('50-to-75')) return '50-75%';
     if (nature.includes('25-to-50')) return '25-50%';
+    // Threshold-based controls
+    if (nature.includes('more-than-50')) return '>50%';
+    if (nature.includes('more-than-25')) return '>25%';
+  }
+
+  // Non-percentage control types
+  for (const nature of naturesOfControl) {
+    if (nature.includes('significant-influence')) return 'significant influence';
+    if (nature.includes('right-to-appoint') || nature.includes('appointment-of')) return 'board appointment rights';
+    if (nature.includes('general-partner')) return 'general partner';
+    if (nature.includes('limited-partner')) return 'limited partner';
+    if (nature.includes('managing-officer')) return 'managing officer';
   }
   return null;
 }

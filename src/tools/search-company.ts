@@ -8,7 +8,7 @@ export const SearchCompanyInputSchema = {
   region: z.string().optional().describe('Filter by registered office region, e.g. "London"'),
   incorporated_after: z.string().optional().describe('ISO date — only companies formed after this date'),
   incorporated_before: z.string().optional().describe('ISO date — only companies formed before this date'),
-  status: z.enum(['active', 'dissolved', 'liquidation', 'all']).optional().describe('Filter by company status. Default: all'),
+  status: z.enum(['active', 'dissolved', 'liquidation', 'receivership', 'administration', 'open', 'closed', 'all']).optional().describe('Filter by company status. Default: all'),
   limit: z.number().min(1).max(50).optional().describe('Max results to return. Default: 10, max: 50'),
 };
 
@@ -58,16 +58,24 @@ export async function searchCompany(
 
   // Post-filter: incorporation date range
   if (input.incorporated_after) {
-    const after = new Date(input.incorporated_after);
-    items = items.filter(item =>
-      item.date_of_creation && new Date(item.date_of_creation) >= after
-    );
+    const after = new Date(input.incorporated_after).getTime();
+    if (!Number.isNaN(after)) {
+      items = items.filter(item => {
+        if (!item.date_of_creation) return false;
+        const created = new Date(item.date_of_creation).getTime();
+        return !Number.isNaN(created) && created >= after;
+      });
+    }
   }
   if (input.incorporated_before) {
-    const before = new Date(input.incorporated_before);
-    items = items.filter(item =>
-      item.date_of_creation && new Date(item.date_of_creation) <= before
-    );
+    const before = new Date(input.incorporated_before).getTime();
+    if (!Number.isNaN(before)) {
+      items = items.filter(item => {
+        if (!item.date_of_creation) return false;
+        const created = new Date(item.date_of_creation).getTime();
+        return !Number.isNaN(created) && created <= before;
+      });
+    }
   }
 
   // Post-filter: SIC codes (requires fetching individual profiles for SIC data)
@@ -82,7 +90,7 @@ export async function searchCompany(
     company_number: item.company_number,
     company_status: item.company_status ?? 'unknown',
     company_type: item.company_type ?? 'unknown',
-    sector: 'N/A (use company number for full profile with sector)',
+    sector: 'Use deep_due_diligence with company_number for sector classification',
     date_of_creation: item.date_of_creation ?? null,
     date_of_cessation: item.date_of_cessation ?? null,
     registered_address: item.address_snippet ?? formatAddress(item.address),

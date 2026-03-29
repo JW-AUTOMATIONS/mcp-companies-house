@@ -165,6 +165,29 @@ describe('assessRisk', () => {
     expect(result.overall).toBe('medium');
   });
 
+  it('flags complete board replacement as possible hostile takeover', () => {
+    const recentDate = new Date();
+    recentDate.setMonth(recentDate.getMonth() - 2);
+    const resignDate = recentDate.toISOString().split('T')[0];
+    const appointDate = new Date();
+    appointDate.setMonth(appointDate.getMonth() - 1);
+    const appointStr = appointDate.toISOString().split('T')[0];
+
+    const result = assessRisk({
+      profile: makeProfile(),
+      officers: makeOfficerList({
+        active_count: 1,
+        resigned_count: 2,
+        items: [
+          { name: 'NEW, Person', officer_role: 'director', appointed_on: appointStr, links: { self: '/o/4' } },
+          { name: 'OLD, A', officer_role: 'director', resigned_on: resignDate, links: { self: '/o/1' } },
+          { name: 'OLD, B', officer_role: 'director', resigned_on: resignDate, links: { self: '/o/2' } },
+        ],
+      }),
+    });
+    expect(result.flags.some(f => f.flag.includes('hostile takeover'))).toBe(true);
+  });
+
   it('flags frequent address changes', () => {
     const recentDate = new Date();
     recentDate.setMonth(recentDate.getMonth() - 6);

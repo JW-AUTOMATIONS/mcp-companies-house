@@ -134,6 +134,17 @@ function assessOfficerRisks(officers: OfficerList, flags: RiskFlag[]): void {
       severity: 'info',
     });
   }
+
+  // Check for complete board replacement (common in fraudulent takeovers)
+  if (officers.active_count === 1 && recentResignations.length >= 2) {
+    const activeOfficer = officers.items.find(o => !o.resigned_on);
+    if (activeOfficer?.appointed_on && monthsSince(activeOfficer.appointed_on) <= 6) {
+      flags.push({
+        flag: 'Sole director appointed within 6 months while 2+ directors resigned — possible hostile takeover',
+        severity: 'warning',
+      });
+    }
+  }
 }
 
 function assessFilingRisks(profile: CompanyProfile, filings: FilingHistoryList, flags: RiskFlag[]): void {
