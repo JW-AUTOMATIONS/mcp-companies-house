@@ -164,6 +164,13 @@ describe('deepDueDiligence', () => {
 
       expect(result.risk_summary.overall).toBe('low');
 
+      expect(result.summary).toBeDefined();
+      expect(result.summary).toContain('active');
+      expect(result.summary).toContain('year-old');
+      expect(result.summary).toContain('low risk');
+      expect(result.summary).toContain('2 active directors');
+      expect(result.summary).toContain('no charges');
+
       expect(result.attribution).toContain('Open Government Licence');
     } finally {
       cleanupDb(cache, dbPath);
@@ -182,6 +189,43 @@ describe('deepDueDiligence', () => {
     try {
       await expect(deepDueDiligence(client, { company_number: '99999999' }))
         .rejects.toThrow(CompanyNotFoundError);
+    } finally {
+      cleanupDb(cache, dbPath);
+    }
+  });
+
+  it('summary handles dissolved company with no active directors', async () => {
+    const { client, cache, dbPath } = makeClient();
+
+    const dissolvedProfile = {
+      ...PROFILE,
+      company_status: 'dissolved',
+      date_of_cessation: '2024-06-01',
+    };
+
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      let body: unknown = {};
+      if (url.includes('/officers')) {
+        body = { active_count: 0, items: [], items_per_page: 35, resigned_count: 0, start_index: 0, total_results: 0 };
+      } else if (url.includes('/persons-with-significant-control')) {
+        body = { active_count: 0, ceased_count: 0, items: [], items_per_page: 25, start_index: 0, total_results: 0 };
+      } else if (url.includes('/filing-history')) {
+        body = { items: [], items_per_page: 25, start_index: 0, total_count: 0 };
+      } else if (url.includes('/charges')) {
+        body = { items: [], total_count: 0 };
+      } else if (url.includes('/insolvency')) {
+        body = { cases: [] };
+      } else {
+        body = dissolvedProfile;
+      }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    });
+
+    try {
+      const result = await deepDueDiligence(client, { company_number: '12345678' });
+      expect(result.summary).toContain('dissolved');
+      expect(result.summary).toContain('2024-06-01');
+      expect(result.summary).toContain('no active directors');
     } finally {
       cleanupDb(cache, dbPath);
     }

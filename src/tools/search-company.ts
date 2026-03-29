@@ -22,6 +22,7 @@ export interface SearchCompanyResult {
     date_of_creation: string | null;
     date_of_cessation: string | null;
     registered_address: string;
+    snippet: string | null;
   }>;
   total_results: number;
   filtered_count: number;
@@ -94,6 +95,7 @@ export async function searchCompany(
     date_of_creation: item.date_of_creation ?? null,
     date_of_cessation: item.date_of_cessation ?? null,
     registered_address: item.address_snippet ?? formatAddress(item.address),
+    snippet: item.snippet ?? null,
   }));
 
   return {

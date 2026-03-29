@@ -204,12 +204,18 @@ function buildSummary(
   const status = profile.company_status ?? 'unknown';
   const sector = classifySector(profile.sic_codes);
 
-  // Age
+  // Status + age + sector
   if (profile.date_of_creation) {
     const age = calculateAgeYears(profile.date_of_creation);
-    parts.push(`${status} ${age < 1 ? 'newly formed' : age + '-year-old'} ${sector !== 'Uncategorised' ? sector.toLowerCase() : ''} company`.replace(/  +/g, ' ').trim());
+    const sectorStr = sector !== 'Uncategorised' ? ` ${sector.toLowerCase()}` : '';
+    parts.push(`${status} ${age < 1 ? 'newly formed' : age + '-year-old'}${sectorStr} company`);
   } else {
     parts.push(`${status} company`);
+  }
+
+  // Dissolved context
+  if (status === 'dissolved' && profile.date_of_cessation) {
+    parts.push(`dissolved ${profile.date_of_cessation}`);
   }
 
   // Risk
@@ -219,6 +225,8 @@ function buildSummary(
   const activeCount = officers?.active_count ?? 0;
   if (activeCount > 0) {
     parts.push(`${activeCount} active director${activeCount !== 1 ? 's' : ''}`);
+  } else if (officers) {
+    parts.push('no active directors');
   }
 
   // Charges
@@ -230,9 +238,12 @@ function buildSummary(
     parts.push('no charges');
   }
 
-  // Key flags
-  if (risk.overdue_filings) parts.push('OVERDUE FILINGS');
-  if (risk.insolvency_history) parts.push('INSOLVENCY HISTORY');
+  // Critical flags from risk assessment
+  for (const flag of risk.flags) {
+    if (flag.severity === 'critical') {
+      parts.push(flag.flag.toUpperCase());
+    }
+  }
 
   return parts.join(', ') + '.';
 }

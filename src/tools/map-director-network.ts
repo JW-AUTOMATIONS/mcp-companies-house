@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import type { ChApiClient } from '../api/client.js';
 import type { OfficerAppointmentItem } from '../api/types.js';
+import { CompanyNotFoundError } from '../shared/errors.js';
+import { createLogger, LogLevel } from '../shared/logger.js';
+
+const logger = createLogger('director-network', LogLevel.INFO);
 
 export const MapDirectorNetworkInputSchema = {
   officer_id: z.string().describe('Officer ID from a previous search or due-diligence result'),
@@ -96,8 +100,12 @@ export async function mapDirectorNetwork(
           coDirectorMap.set(officer.name, existing);
         }
       }
-    } catch {
-      // Skip companies where we can't fetch officers
+    } catch (error) {
+      if (error instanceof CompanyNotFoundError) continue;
+      logger.warn('Failed to fetch officers for co-director mapping', {
+        company: cn,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
     }
   }
 

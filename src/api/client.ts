@@ -191,6 +191,18 @@ export class ChApiClient {
       await this.rateLimiter.waitForTokens(1);
       const response = await this.httpGet(path);
 
+      if (response.status === 401) {
+        throw new InvalidInputError(
+          'Invalid or expired API key. Register at https://developer.company-information.service.gov.uk/ and set CH_API_KEY.',
+        );
+      }
+
+      if (response.status === 403) {
+        throw new InvalidInputError(
+          'API key does not have access to this resource. Check your Companies House application permissions.',
+        );
+      }
+
       if (response.status === 404) {
         if (category === CacheCategory.COMPANY_PROFILE) {
           throw new CompanyNotFoundError(cacheKey);
@@ -266,12 +278,19 @@ export class ChApiClient {
 
   private async httpGet(path: string): Promise<Response> {
     const url = `${CH_API_BASE}${path}`;
-    return fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': this.authHeader,
-        'Accept': 'application/json',
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    try {
+      return await fetch(url, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Authorization': this.authHeader,
+          'Accept': 'application/json',
+        },
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 }

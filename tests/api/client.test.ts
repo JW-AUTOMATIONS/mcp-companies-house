@@ -253,6 +253,20 @@ describe('ChApiClient', () => {
     });
   });
 
+  describe('error responses', () => {
+    it('throws descriptive error on 401 (invalid API key)', async () => {
+      globalThis.fetch = mockFetch(401, { error: 'Invalid authentication credentials' });
+
+      await expect(client.getCompanyProfile('12345678')).rejects.toThrow('Invalid or expired API key');
+    });
+
+    it('throws descriptive error on 403 (forbidden)', async () => {
+      globalThis.fetch = mockFetch(403, { error: 'Forbidden' });
+
+      await expect(client.getCompanyProfile('12345678')).rejects.toThrow('does not have access');
+    });
+  });
+
   describe('auth header', () => {
     it('sends correct basic auth', async () => {
       const fetchSpy = mockFetch(200, COMPANY_PROFILE_FIXTURE);
