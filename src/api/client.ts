@@ -18,6 +18,8 @@ import {
   CompanySearchResultSchema,
   OfficerAppointmentListSchema,
   OfficerSearchResultSchema,
+  DisqualifiedOfficerSchema,
+  DisqualifiedSearchResultSchema,
 } from './types.js';
 import type {
   CompanyProfile,
@@ -29,6 +31,8 @@ import type {
   CompanySearchResult,
   OfficerAppointmentList,
   OfficerSearchResult,
+  DisqualifiedOfficer,
+  DisqualifiedSearchResult,
 } from './types.js';
 
 const logger = createLogger('ch-api', LogLevel.INFO);
@@ -183,6 +187,37 @@ export class ChApiClient {
       cacheKey,
       CacheCategory.SEARCH,
       OfficerSearchResultSchema,
+    );
+  }
+
+  async searchDisqualifiedOfficers(query: string, startIndex = 0, itemsPerPage = 20): Promise<FetchResult<DisqualifiedSearchResult>> {
+    if (!query.trim()) {
+      throw new InvalidInputError('Search query must not be empty.');
+    }
+    const params = new URLSearchParams({
+      q: query,
+      start_index: String(startIndex),
+      items_per_page: String(Math.min(itemsPerPage, 50)),
+    });
+    const cacheKey = `disqualified-search:${query}:${startIndex}:${itemsPerPage}`;
+    return this.fetchWithCache(
+      `/search/disqualified-officers?${params}`,
+      cacheKey,
+      CacheCategory.DISQUALIFICATIONS,
+      DisqualifiedSearchResultSchema,
+    );
+  }
+
+  async getDisqualifiedOfficer(officerId: string, type: 'natural' | 'corporate' = 'natural'): Promise<FetchResult<DisqualifiedOfficer>> {
+    if (!officerId.trim()) {
+      throw new InvalidInputError('Officer ID must not be empty.');
+    }
+    const cacheKey = `disqualified:${type}:${officerId}`;
+    return this.fetchWithCache(
+      `/disqualified-officers/${type}/${officerId}`,
+      cacheKey,
+      CacheCategory.DISQUALIFICATIONS,
+      DisqualifiedOfficerSchema,
     );
   }
 

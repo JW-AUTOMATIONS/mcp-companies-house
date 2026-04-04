@@ -513,3 +513,69 @@ export const OfficerSearchResultSchema = z.object({
 }).passthrough();
 
 export type OfficerSearchResult = z.infer<typeof OfficerSearchResultSchema>;
+
+// --- Disqualified Officers ---
+
+export const DisqualificationReasonSchema = z.object({
+  act: z.string().optional(),
+  article: z.string().optional(),
+  description_identifier: z.string().optional(),
+  section: z.string().optional(),
+}).passthrough();
+
+export const DisqualificationSchema = z.object({
+  address: AddressSchema.optional(),
+  case_identifier: z.string().optional(),
+  company_names: z.array(z.string()).optional(),
+  court_name: z.string().optional(),
+  disqualification_type: z.string().optional(),
+  disqualified_from: z.string().optional(),
+  disqualified_until: z.string().optional(),
+  heard_on: z.string().optional(),
+  undertaken_on: z.string().optional(),
+  last_variation: z.string().optional(),
+  reason: DisqualificationReasonSchema.optional(),
+}).passthrough();
+
+export const DisqualifiedOfficerSchema = z.object({
+  date_of_birth: z.string().optional(),
+  disqualifications: z.array(DisqualificationSchema),
+  etag: z.string().optional(),
+  forename: z.string().optional(),
+  honours: z.string().optional(),
+  kind: z.string().optional(),
+  links: z.object({ self: z.string().optional() }).optional(),
+  nationality: z.string().optional(),
+  other_forenames: z.string().optional(),
+  person_number: z.string().optional(),
+  surname: z.string().optional(),
+  title: z.string().optional(),
+}).passthrough();
+
+export type DisqualifiedOfficer = z.infer<typeof DisqualifiedOfficerSchema>;
+
+export const DisqualifiedSearchItemSchema = z.object({
+  address: AddressSchema.optional(),
+  address_snippet: z.string().optional(),
+  date_of_birth: z.union([z.string(), DateOfBirthSchema]).optional(),
+  description: z.string().optional(),
+  description_identifiers: z.array(z.string()).optional(),
+  kind: z.string().optional(),
+  links: z.object({ self: z.string() }),
+  matches: z.object({ snippet: z.array(z.number()).optional() }).optional(),
+  snippet: z.string().optional(),
+  title: z.string(),
+}).passthrough();
+
+export type DisqualifiedSearchItem = z.infer<typeof DisqualifiedSearchItemSchema>;
+
+export const DisqualifiedSearchResultSchema = z.object({
+  items: z.array(DisqualifiedSearchItemSchema),
+  items_per_page: z.number().optional(),
+  kind: z.string().optional(),
+  page_number: z.number().optional(),
+  start_index: z.number().optional(),
+  total_results: z.number().optional(),
+}).passthrough();
+
+export type DisqualifiedSearchResult = z.infer<typeof DisqualifiedSearchResultSchema>;

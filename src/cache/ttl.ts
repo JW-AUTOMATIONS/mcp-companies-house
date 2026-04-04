@@ -7,6 +7,7 @@ export enum CacheCategory {
   INSOLVENCY = 'insolvency',
   SEARCH = 'search',
   OFFICER_APPOINTMENTS = 'officer_appointments',
+  DISQUALIFICATIONS = 'disqualifications',
 }
 
 const DEFAULT_TTL_SECONDS: Record<CacheCategory, number> = {
@@ -18,6 +19,7 @@ const DEFAULT_TTL_SECONDS: Record<CacheCategory, number> = {
   [CacheCategory.INSOLVENCY]: 21_600,              // 6 hours
   [CacheCategory.SEARCH]: 1_800,                   // 30 minutes
   [CacheCategory.OFFICER_APPOINTMENTS]: 43_200,    // 12 hours
+  [CacheCategory.DISQUALIFICATIONS]: 86_400,        // 24 hours (rarely changes)
 };
 
 const PRO_TTL_SECONDS: Record<CacheCategory, number> = {
@@ -29,6 +31,7 @@ const PRO_TTL_SECONDS: Record<CacheCategory, number> = {
   [CacheCategory.INSOLVENCY]: 10_800,              // 3 hours
   [CacheCategory.SEARCH]: 900,                     // 15 minutes
   [CacheCategory.OFFICER_APPOINTMENTS]: 21_600,    // 6 hours
+  [CacheCategory.DISQUALIFICATIONS]: 43_200,        // 12 hours
 };
 
 export function getTtlSeconds(category: CacheCategory, isPro: boolean): number {

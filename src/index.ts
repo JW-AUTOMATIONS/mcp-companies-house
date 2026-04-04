@@ -15,6 +15,7 @@ import { traceOwnershipChain, TraceOwnershipChainInputSchema } from './tools/tra
 import { mapDirectorNetwork, MapDirectorNetworkInputSchema } from './tools/map-director-network.js';
 import { detectFilingAnomalies, DetectFilingAnomaliesInputSchema } from './tools/detect-filing-anomalies.js';
 import { searchOfficers, SearchOfficersInputSchema } from './tools/search-officers.js';
+import { checkDisqualifications, CheckDisqualificationsInputSchema } from './tools/check-disqualifications.js';
 
 const logger = createLogger('mcp-server', LogLevel.INFO);
 
@@ -213,6 +214,27 @@ server.registerTool(
   async (args) => {
     try {
       return toolResult(await searchOfficers(client, args));
+    } catch (error) {
+      return toolError(error);
+    }
+  },
+);
+
+server.registerTool(
+  'check_disqualifications',
+  {
+    title: 'Check Director Disqualifications',
+    description:
+      'Checks all current directors of a UK company against the Companies House disqualified officers register. ' +
+      'Returns any active disqualification orders or undertakings with dates, reasons, and related companies. ' +
+      'Critical for KYC/AML compliance — a disqualified person acting as director is a criminal offence. ' +
+      'Use as part of due diligence or supplier vetting workflows.',
+    inputSchema: CheckDisqualificationsInputSchema,
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      return toolResult(await checkDisqualifications(client, args));
     } catch (error) {
       return toolError(error);
     }
