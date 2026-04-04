@@ -94,9 +94,12 @@ server.registerTool(
   {
     title: 'Get Company Profile',
     description:
-      'Quick lookup for a single UK company by number. Returns name, status, type, sector, registered address, ' +
-      'SIC codes, filing deadlines, previous names, and key flags (charges, insolvency). Lighter and faster than ' +
-      'deep_due_diligence — use this when you just need basic company information. Auto-pads short company numbers.',
+      'Quick lookup for a single UK company when you already have its company number. Returns name, status, type, ' +
+      'sector, registered address, SIC codes, filing deadlines, previous names, and key flags (charges, insolvency). ' +
+      'Use this when the user asks basic questions like "what does company X do?" or "is this company still active?". ' +
+      'If you only have a company name, call search_company first to find the number. For risk assessment or ' +
+      'investment research, use deep_due_diligence instead — it includes everything this tool returns plus officers, ' +
+      'ownership, charges, and a risk score.',
     inputSchema: GetCompanyProfileInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -114,9 +117,11 @@ server.registerTool(
   {
     title: 'Search UK Companies',
     description:
-      'Search 5M+ UK companies by name, with optional filtering by status, region, SIC code, and incorporation date range. ' +
-      'Returns company number, name, status, address, SIC codes, and incorporation date. ' +
-      'Use when you need to find UK companies matching specific criteria.',
+      'Find UK companies by name or keyword. This is your starting point when the user mentions a company by name ' +
+      'without a company number — search first, then pass the returned company_number to other tools. ' +
+      'Returns company number, name, status, address, and incorporation date for each match. ' +
+      'Supports optional filtering by status (active/dissolved), region, SIC code, and incorporation date range. ' +
+      'Covers 5M+ companies registered in England, Wales, Scotland, and Northern Ireland.',
     inputSchema: SearchCompanyInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -134,9 +139,12 @@ server.registerTool(
   {
     title: 'Deep Due Diligence Report',
     description:
-      'Comprehensive company intelligence in a single call. Fetches profile, officers, PSCs (beneficial owners), ' +
-      'charges, insolvency history, and filing history in parallel. Returns structured risk assessment, sector classification, ' +
-      'and data quality indicators. Use for KYC, AML checks, investment research, or supplier vetting on any UK company.',
+      'Comprehensive company intelligence in a single call — the go-to tool when the user asks "is this company ' +
+      'risky?", "should I invest in X?", "tell me everything about company Y", or any KYC/AML/supplier vetting question. ' +
+      'Fetches profile, officers, PSCs (beneficial owners), charges, insolvency history, and recent filings in parallel. ' +
+      'Returns a risk score (low/medium/high) with specific flags, a one-line summary, and structured data for each area. ' +
+      'Prefer this over calling get_company_profile, search_officers, and other tools individually when the user wants ' +
+      'a comprehensive view. Officer results include officer_id values you can pass to map_director_network.',
     inputSchema: DeepDueDiligenceInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -154,10 +162,12 @@ server.registerTool(
   {
     title: 'Trace Beneficial Ownership Chain',
     description:
-      'Recursively traces Persons with Significant Control (PSCs) to find ultimate beneficial owners. ' +
-      'Follows corporate ownership chains across UK companies, detects circular ownership structures, ' +
-      'and flags foreign entities that cannot be traced further. Supports up to 10 levels of nesting. ' +
-      'Use for beneficial ownership verification, AML compliance, and corporate structure analysis.',
+      'Use when the user asks "who owns this company?", "who is the ultimate beneficial owner?", or wants to ' +
+      'understand a corporate ownership structure. Recursively traces Persons with Significant Control (PSCs) ' +
+      'through corporate chains to find ultimate beneficial owners. Detects circular ownership, flags foreign ' +
+      'entities that cannot be traced further, and shows ownership percentage bands at each level. ' +
+      'Supports up to 10 levels of nesting. For a broader risk picture that includes ownership alongside ' +
+      'officers, charges, and filings, use deep_due_diligence instead.',
     inputSchema: TraceOwnershipChainInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -175,10 +185,11 @@ server.registerTool(
   {
     title: 'Map Director Network',
     description:
+      'Use when the user asks "what other companies does this director run?" or "who are their co-directors?". ' +
       'Maps all company appointments for an officer, identifies co-directors across companies, and flags ' +
-      'serial directors (10+ companies) and formation agents (25+ companies). Shows which directors frequently ' +
-      'work together and calculates tenure statistics. Use for director due diligence, network analysis, and ' +
-      'identifying connected company groups. Requires an officer_id from Companies House.',
+      'serial directors (10+ companies) and formation agents (25+ companies). ' +
+      'Requires an officer_id — get this from deep_due_diligence (in the officers array) or search_officers ' +
+      '(search by person name). Do NOT pass a company number here; this tool takes a person identifier, not a company.',
     inputSchema: MapDirectorNetworkInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -196,10 +207,12 @@ server.registerTool(
   {
     title: 'Detect Filing Anomalies',
     description:
-      'Analyses a company\'s filing history to detect red flags: overdue accounts, overdue confirmation statements, ' +
-      'frequent address changes, rapid director turnover, habitual late filing, and periods with no filings. ' +
+      'Use when the user asks "are their filings up to date?", "is this company compliant?", or wants to monitor ' +
+      'filing behaviour over time. Analyses filing history to detect red flags: overdue accounts, overdue confirmation ' +
+      'statements, frequent address changes, rapid director turnover, habitual late filing, and gaps with no filings. ' +
       'Returns a filing health score (healthy/concerning/problematic), anomaly list with severity ratings, ' +
-      'and upcoming due dates. Use for compliance monitoring, risk assessment, and ongoing company surveillance.',
+      'and upcoming due dates. Note: deep_due_diligence includes basic overdue flags — use this tool when you need ' +
+      'the detailed filing pattern analysis.',
     inputSchema: DetectFilingAnomaliesInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -218,9 +231,11 @@ server.registerTool(
     title: 'Search UK Company Officers',
     description:
       'Search for company directors, secretaries, and other officers by name across all UK companies. ' +
-      'Returns officer name, appointment count, date of birth (month/year), address, and officer_id ' +
-      '(which can be passed to map_director_network for full network analysis). ' +
-      'Use when you know a person\'s name but not which companies they\'re involved with.',
+      'Use when the user asks about a person — "what companies does John Smith direct?" or "find director Jane Doe". ' +
+      'Returns officer name, appointment count, date of birth (month/year), and officer_id. ' +
+      'Pass the returned officer_id to map_director_network to see their full company network and co-directors. ' +
+      'If you already have a company number and want its directors, use deep_due_diligence instead — it returns ' +
+      'officers with their officer_id included.',
     inputSchema: SearchOfficersInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
@@ -238,10 +253,11 @@ server.registerTool(
   {
     title: 'Check Director Disqualifications',
     description:
-      'Checks all current directors of a UK company against the Companies House disqualified officers register. ' +
-      'Returns any active disqualification orders or undertakings with dates, reasons, and related companies. ' +
-      'Critical for KYC/AML compliance — a disqualified person acting as director is a criminal offence. ' +
-      'Use as part of due diligence or supplier vetting workflows.',
+      'Use when the user asks "have any directors been disqualified?" or as part of KYC/AML due diligence. ' +
+      'Takes a company number and checks ALL current directors against the Companies House disqualified officers ' +
+      'register. Returns any active disqualification orders with dates, reasons, and related companies. ' +
+      'A disqualified person acting as director is a criminal offence under UK law. ' +
+      'Returns a clean: true/false flag for quick pass/fail checks.',
     inputSchema: CheckDisqualificationsInputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   },

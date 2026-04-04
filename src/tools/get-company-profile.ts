@@ -4,7 +4,7 @@ import { normalizeCompanyNumber } from '../shared/company-number.js';
 import { classifySector, classifySectors } from '../enrichment/sector-classify.js';
 
 export const GetCompanyProfileInputSchema = {
-  company_number: z.string().describe('UK company number, e.g. "12345678" or "SC123456". Auto-pads short numbers.'),
+  company_number: z.string().describe('UK company number, e.g. "00445790", "SC123456", or "NI012345". Short numbers are auto-padded to 8 digits.'),
 };
 
 export interface CompanyProfileResult {

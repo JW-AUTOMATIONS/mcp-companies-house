@@ -7,7 +7,7 @@ import { createLogger, LogLevel } from '../shared/logger.js';
 const logger = createLogger('ownership-chain', LogLevel.INFO);
 
 export const TraceOwnershipChainInputSchema = {
-  company_number: z.string().describe('8-digit UK company number to trace ownership for'),
+  company_number: z.string().describe('UK company number to trace ownership for, e.g. "00445790" or "SC123456". Short numbers are auto-padded.'),
   max_depth: z.number().min(1).max(10).optional().describe('Maximum depth to trace. Default: 5, max: 10'),
 };
 

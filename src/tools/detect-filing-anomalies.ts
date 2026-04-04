@@ -4,7 +4,7 @@ import type { CompanyProfile, FilingItem } from '../api/types.js';
 import { normalizeCompanyNumber } from '../shared/company-number.js';
 
 export const DetectFilingAnomaliesInputSchema = {
-  company_number: z.string().describe('8-digit UK company number'),
+  company_number: z.string().describe('UK company number, e.g. "00445790" or "SC123456". Short numbers are auto-padded.'),
   lookback_months: z.number().min(1).max(120).optional().describe('Months of filing history to analyse. Default: 24'),
 };
 

@@ -7,7 +7,7 @@ import { createLogger, LogLevel } from '../shared/logger.js';
 const logger = createLogger('disqualifications', LogLevel.INFO);
 
 export const CheckDisqualificationsInputSchema = {
-  company_number: z.string().describe('UK company number — checks all current directors against the disqualified officers register'),
+  company_number: z.string().describe('UK company number, e.g. "00445790" or "SC123456". All current directors will be checked against the disqualified officers register.'),
 };
 
 export interface DisqualificationMatch {

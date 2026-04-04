@@ -10,7 +10,7 @@ import { createLogger, LogLevel } from '../shared/logger.js';
 const logger = createLogger('due-diligence', LogLevel.INFO);
 
 export const DeepDueDiligenceInputSchema = {
-  company_number: z.string().describe('8-digit UK company number, e.g. "12345678" or "SC123456"'),
+  company_number: z.string().describe('UK company number, e.g. "00445790", "SC123456", or "NI012345". Short numbers are auto-padded to 8 digits.'),
 };
 
 export interface DueDiligenceResult {

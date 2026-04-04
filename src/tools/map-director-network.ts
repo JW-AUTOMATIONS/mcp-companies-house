@@ -7,8 +7,8 @@ import { createLogger, LogLevel } from '../shared/logger.js';
 const logger = createLogger('director-network', LogLevel.INFO);
 
 export const MapDirectorNetworkInputSchema = {
-  officer_id: z.string().describe('Officer ID from a previous search or due-diligence result'),
-  include_resigned: z.boolean().optional().describe('Include resigned appointments. Default: false'),
+  officer_id: z.string().describe('Companies House officer ID (e.g. "abc123DEF"). Get this from the officer_id field in deep_due_diligence or search_officers results.'),
+  include_resigned: z.boolean().optional().describe('Include past/resigned appointments alongside current ones. Default: false — only active appointments.'),
 };
 
 export interface CoDirector {
