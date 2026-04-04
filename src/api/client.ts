@@ -17,6 +17,7 @@ import {
   CompanyInsolvencySchema,
   CompanySearchResultSchema,
   OfficerAppointmentListSchema,
+  OfficerSearchResultSchema,
 } from './types.js';
 import type {
   CompanyProfile,
@@ -27,6 +28,7 @@ import type {
   CompanyInsolvency,
   CompanySearchResult,
   OfficerAppointmentList,
+  OfficerSearchResult,
 } from './types.js';
 
 const logger = createLogger('ch-api', LogLevel.INFO);
@@ -163,6 +165,24 @@ export class ChApiClient {
       cacheKey,
       CacheCategory.OFFICER_APPOINTMENTS,
       OfficerAppointmentListSchema,
+    );
+  }
+
+  async searchOfficers(query: string, startIndex = 0, itemsPerPage = 20): Promise<FetchResult<OfficerSearchResult>> {
+    if (!query.trim()) {
+      throw new InvalidInputError('Search query must not be empty.');
+    }
+    const params = new URLSearchParams({
+      q: query,
+      start_index: String(startIndex),
+      items_per_page: String(Math.min(itemsPerPage, 50)),
+    });
+    const cacheKey = `officer-search:${query}:${startIndex}:${itemsPerPage}`;
+    return this.fetchWithCache(
+      `/search/officers?${params}`,
+      cacheKey,
+      CacheCategory.SEARCH,
+      OfficerSearchResultSchema,
     );
   }
 

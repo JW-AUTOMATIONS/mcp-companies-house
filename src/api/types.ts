@@ -488,3 +488,28 @@ export const OfficerAppointmentListSchema = z.object({
 }).passthrough();
 
 export type OfficerAppointmentList = z.infer<typeof OfficerAppointmentListSchema>;
+
+// --- Officer Search ---
+
+export const OfficerSearchItemSchema = z.object({
+  title: z.string(),
+  appointment_count: z.number(),
+  description: z.string().optional(),
+  address_snippet: z.string().optional(),
+  address: AddressSchema.optional(),
+  date_of_birth: DateOfBirthSchema.optional(),
+  links: z.object({
+    self: z.string(),
+  }),
+}).passthrough();
+
+export type OfficerSearchItem = z.infer<typeof OfficerSearchItemSchema>;
+
+export const OfficerSearchResultSchema = z.object({
+  items: z.array(OfficerSearchItemSchema),
+  items_per_page: z.number(),
+  start_index: z.number(),
+  total_results: z.number(),
+}).passthrough();
+
+export type OfficerSearchResult = z.infer<typeof OfficerSearchResultSchema>;

@@ -1,0 +1,23 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - CH_API_KEY
+    properties:
+      CH_API_KEY:
+        type: string
+        description: "Companies House API key (free at https://developer.company-information.service.gov.uk/)"
+      CH_CACHE_PATH:
+        type: string
+        description: "SQLite cache file path (default: ~/.cache/mcp-companies-house/cache.db)"
+  commandFunction:
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['dist/index.js'],
+      env: {
+        CH_API_KEY: config.CH_API_KEY,
+        ...(config.CH_CACHE_PATH ? { CH_CACHE_PATH: config.CH_CACHE_PATH } : {})
+      }
+    })

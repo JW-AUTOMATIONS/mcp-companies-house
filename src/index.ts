@@ -14,6 +14,7 @@ import { deepDueDiligence, DeepDueDiligenceInputSchema } from './tools/deep-due-
 import { traceOwnershipChain, TraceOwnershipChainInputSchema } from './tools/trace-ownership-chain.js';
 import { mapDirectorNetwork, MapDirectorNetworkInputSchema } from './tools/map-director-network.js';
 import { detectFilingAnomalies, DetectFilingAnomaliesInputSchema } from './tools/detect-filing-anomalies.js';
+import { searchOfficers, SearchOfficersInputSchema } from './tools/search-officers.js';
 
 const logger = createLogger('mcp-server', LogLevel.INFO);
 
@@ -191,6 +192,27 @@ server.registerTool(
   async (args) => {
     try {
       return toolResult(await detectFilingAnomalies(client, args));
+    } catch (error) {
+      return toolError(error);
+    }
+  },
+);
+
+server.registerTool(
+  'search_officers',
+  {
+    title: 'Search UK Company Officers',
+    description:
+      'Search for company directors, secretaries, and other officers by name across all UK companies. ' +
+      'Returns officer name, appointment count, date of birth (month/year), address, and officer_id ' +
+      '(which can be passed to map_director_network for full network analysis). ' +
+      'Use when you know a person\'s name but not which companies they\'re involved with.',
+    inputSchema: SearchOfficersInputSchema,
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  async (args) => {
+    try {
+      return toolResult(await searchOfficers(client, args));
     } catch (error) {
       return toolError(error);
     }
