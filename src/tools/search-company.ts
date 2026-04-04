@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { ChApiClient } from '../api/client.js';
-import { classifySector } from '../enrichment/sector-classify.js';
 
 export const SearchCompanyInputSchema = {
   query: z.string().describe('Company name or number to search for'),
@@ -13,17 +12,7 @@ export const SearchCompanyInputSchema = {
 };
 
 export interface SearchCompanyResult {
-  companies: Array<{
-    company_name: string;
-    company_number: string;
-    company_status: string;
-    company_type: string;
-    sector: string;
-    date_of_creation: string | null;
-    date_of_cessation: string | null;
-    registered_address: string;
-    snippet: string | null;
-  }>;
+  companies: Array<Record<string, unknown>>;
   total_results: number;
   filtered_count: number;
   attribution: string;
@@ -86,17 +75,19 @@ export async function searchCompany(
   const filteredCount = items.length;
   items = items.slice(0, limit);
 
-  const companies = items.map(item => ({
-    company_name: item.title,
-    company_number: item.company_number,
-    company_status: item.company_status ?? 'unknown',
-    company_type: item.company_type ?? 'unknown',
-    sector: 'Unknown (use get_company_profile for sector)',
-    date_of_creation: item.date_of_creation ?? null,
-    date_of_cessation: item.date_of_cessation ?? null,
-    registered_address: item.address_snippet ?? formatAddress(item.address),
-    snippet: item.snippet ?? null,
-  }));
+  const companies = items.map(item => {
+    const entry: Record<string, unknown> = {
+      company_name: item.title,
+      company_number: item.company_number,
+      company_status: item.company_status ?? 'unknown',
+      company_type: item.company_type ?? 'unknown',
+      date_of_creation: item.date_of_creation ?? undefined,
+      registered_address: item.address_snippet ?? formatAddress(item.address),
+    };
+    if (item.date_of_cessation) entry.date_of_cessation = item.date_of_cessation;
+    if (item.snippet) entry.snippet = item.snippet;
+    return entry;
+  });
 
   return {
     companies,

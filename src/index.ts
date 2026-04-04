@@ -37,6 +37,7 @@ fs.mkdirSync(cacheDir, { recursive: true });
 const cache = new CacheStore(DB_PATH);
 const rateLimiter = new TokenBucketRateLimiter({ maxTokens: 600, refillRate: 2 });
 const isPro = process.env.CH_PRO_KEY ? true : false;
+const isCompact = process.env.CH_COMPACT === '1' || process.env.CH_COMPACT === 'true';
 const client = new ChApiClient({ apiKey: CH_API_KEY, cache, rateLimiter, isPro });
 
 // Prune expired cache entries on startup (>7 days old across all categories)
@@ -58,9 +59,21 @@ const server = new McpServer(
   },
 );
 
+function stripForCompact(data: unknown): unknown {
+  if (!isCompact || typeof data !== 'object' || data === null) return data;
+  const obj = data as Record<string, unknown>;
+  const stripped: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'attribution') continue;
+    if (key === 'data_quality') continue;
+    stripped[key] = value;
+  }
+  return stripped;
+}
+
 function toolResult(data: unknown) {
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+    content: [{ type: 'text' as const, text: JSON.stringify(stripForCompact(data)) }],
   };
 }
 
