@@ -127,13 +127,14 @@ export async function mapDirectorNetwork(
   const flags: string[] = [];
 
   if (allItems.length >= 25) {
-    flags.push(`Director of ${allItems.length}+ companies (possible formation agent pattern)`);
+    flags.push(`Director of ${allItems.length}+ companies — this is a formation agent pattern. Formation agents register companies on behalf of clients and are typically not the real decision-makers.`);
   } else if (allItems.length >= 10) {
-    flags.push(`Director of ${allItems.length} companies (serial director)`);
+    flags.push(`Director of ${allItems.length} companies (serial director) — this may indicate a professional director, investor, or company group.`);
   }
 
   if (dissolved.length >= 5) {
-    flags.push(`${dissolved.length} dissolved companies in history`);
+    const dissolvedPct = Math.round((dissolved.length / allItems.length) * 100);
+    flags.push(`${dissolved.length} dissolved companies in history (${dissolvedPct}% of total) — a high dissolution rate may indicate speculative ventures or failed businesses.`);
   }
 
   const multipleSharedDirectors = coDirectors.filter(cd => cd.shared_count >= 3);

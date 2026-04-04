@@ -62,6 +62,14 @@ export async function traceOwnershipChain(
     0, maxDepth, chain, ubos, warnings, visited, [rootName],
   );
 
+  // Add contextual hints for unusual ownership patterns
+  if (chain.length >= 4) {
+    warnings.push(`Ownership chain is ${chain.length} levels deep — this level of nesting is uncommon for UK SMEs and may warrant closer scrutiny.`);
+  }
+  if (ubos.filter(u => u.type === 'foreign_company').length >= 2) {
+    warnings.push('Multiple foreign corporate owners detected — full beneficial ownership cannot be verified through UK records alone.');
+  }
+
   return {
     company: rootName,
     company_number: cn,

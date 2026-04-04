@@ -169,6 +169,25 @@ export async function deepDueDiligence(
   }
   if (insolvencyCases.length > 0) result.insolvency_cases = insolvencyCases;
   if (recentFilings.length > 0) result.recent_filings = recentFilings;
+
+  // Add contextual hints for unusual patterns
+  const hints: string[] = [];
+  if (pscs && activePscs.length === 0 && p.company_status === 'active') {
+    const isListed = p.type === 'plc' || p.type === 'registered-overseas-entity';
+    if (isListed) {
+      hints.push('No individual PSCs registered — this is normal for a publicly traded company. Beneficial ownership is disclosed through share registers.');
+    } else {
+      hints.push('No Persons with Significant Control (PSCs) filed despite being an active company — this may indicate non-compliance or recent incorporation.');
+    }
+  }
+  if (currentOfficers.length >= 15) {
+    hints.push(`${currentOfficers.length} active directors is unusually high — this is common for large PLCs or professional services firms.`);
+  }
+  if (activePscs.some(psc => psc.is_corporate)) {
+    hints.push('One or more PSCs are corporate entities — use trace_ownership_chain to find the ultimate beneficial owners.');
+  }
+  if (hints.length > 0) result.hints = hints;
+
   if (staleSources.length > 0) result.data_quality = { stale_sources: staleSources };
   result.attribution = 'Contains public sector information licensed under the Open Government Licence v3.0';
 
