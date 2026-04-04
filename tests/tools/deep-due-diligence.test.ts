@@ -147,22 +147,20 @@ describe('deepDueDiligence', () => {
       expect(result.company.number).toBe('12345678');
       expect(result.company.status).toBe('active');
       expect(result.company.sector).toBe('Technology & Software');
-      expect(result.company.sectors).toContain('Technology & Software');
       expect(result.company.sic_codes).toEqual(['62020', '62090']);
       expect(result.company.registered_address).toContain('Downing Street');
 
-      expect(result.officers.current).toHaveLength(1);
-      expect(result.officers.current[0].name).toBe('SMITH, John');
-      expect(result.officers.current[0].officer_id).toBe('abc123');
-      expect(result.officers.resigned).toHaveLength(1);
-      expect(result.officers.resigned[0].name).toBe('DOE, Jane');
+      expect((result.officers as any).current).toHaveLength(1);
+      expect((result.officers as any).current[0].name).toBe('SMITH, John');
+      expect((result.officers as any).current[0].officer_id).toBe('abc123');
+      expect((result.officers as any).recent_resigned).toHaveLength(1);
+      expect((result.officers as any).recent_resigned[0].name).toBe('DOE, Jane');
 
       expect(result.pscs).toHaveLength(1);
-      expect(result.pscs[0].is_corporate).toBe(false);
 
-      expect(result.recent_filings.length).toBeGreaterThan(0);
+      expect(result.recent_filings!.length).toBeGreaterThan(0);
 
-      expect(result.risk_summary.overall).toBe('low');
+      expect(result.risk.overall).toBe('low');
 
       expect(result.summary).toBeDefined();
       expect(result.summary).toContain('active');
@@ -253,12 +251,12 @@ describe('deepDueDiligence', () => {
       const result = await deepDueDiligence(client, { company_number: '12345678' });
 
       expect(result.company.name).toBe('ACME LTD');
-      expect(result.officers.current).toHaveLength(0);
-      expect(result.officers.resigned).toHaveLength(0);
-      expect(result.pscs).toHaveLength(0);
-      expect(result.charges).toHaveLength(0);
-      expect(result.insolvency_cases).toHaveLength(0);
-      expect(result.recent_filings).toHaveLength(0);
+      expect((result.officers as any).current).toHaveLength(0);
+      // When all sub-resources 404, optional sections are omitted entirely
+      expect(result.pscs).toBeUndefined();
+      expect(result.charges).toBeUndefined();
+      expect(result.insolvency_cases).toBeUndefined();
+      expect(result.recent_filings).toBeUndefined();
     } finally {
       cleanupDb(cache, dbPath);
     }

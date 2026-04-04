@@ -14,68 +14,15 @@ export const DeepDueDiligenceInputSchema = {
 };
 
 export interface DueDiligenceResult {
-  company: {
-    name: string;
-    number: string;
-    status: string;
-    type: string;
-    sector: string;
-    sectors: string[];
-    sic_codes: string[];
-    date_of_creation: string | null;
-    date_of_cessation: string | null;
-    age_years: number | null;
-    registered_address: string;
-    jurisdiction: string | null;
-  };
-  officers: {
-    current: Array<{
-      name: string;
-      role: string;
-      appointed_on: string | null;
-      nationality: string | null;
-      occupation: string | null;
-      officer_id: string | null;
-    }>;
-    resigned: Array<{
-      name: string;
-      role: string;
-      appointed_on: string | null;
-      resigned_on: string;
-    }>;
-  };
-  pscs: Array<{
-    name: string;
-    kind: string | null;
-    natures_of_control: string[];
-    notified_on: string;
-    ceased_on: string | null;
-    is_corporate: boolean;
-    registration_number: string | null;
-  }>;
-  charges: Array<{
-    status: string;
-    created_on: string | null;
-    persons_entitled: string[];
-    description: string | null;
-  }>;
-  insolvency_cases: Array<{
-    type: string;
-    dates: Array<{ date: string; type: string }>;
-    practitioners: string[];
-  }>;
-  recent_filings: Array<{
-    category: string;
-    date: string;
-    description: string;
-    type: string;
-  }>;
   summary: string;
-  risk_summary: RiskSummary;
-  data_quality: {
-    stale_sources: string[];
-    api_status: 'live' | 'degraded';
-  };
+  risk: RiskSummary;
+  company: Record<string, unknown>;
+  officers: Record<string, unknown>;
+  pscs?: Array<Record<string, unknown>>;
+  charges?: Record<string, unknown>;
+  insolvency_cases?: Array<Record<string, unknown>>;
+  recent_filings?: Array<Record<string, unknown>>;
+  data_quality?: { stale_sources: string[] };
   attribution: string;
 }
 
@@ -123,75 +70,109 @@ export async function deepDueDiligence(
 
   const p = profile.data;
 
-  return {
-    company: {
+  // Build officer lists — strip null fields, cap resigned at 5 most recent
+  const currentOfficers = (officers?.data.items ?? [])
+    .filter(o => !o.resigned_on)
+    .map(o => stripNulls({
+      name: o.name,
+      role: o.officer_role,
+      appointed_on: o.appointed_on,
+      nationality: o.nationality,
+      occupation: o.occupation,
+      officer_id: extractOfficerId(o.links),
+    }));
+
+  const allResigned = (officers?.data.items ?? []).filter(o => o.resigned_on);
+  const recentResigned = allResigned
+    .sort((a, b) => (b.resigned_on ?? '').localeCompare(a.resigned_on ?? ''))
+    .slice(0, 5)
+    .map(o => stripNulls({
+      name: o.name,
+      role: o.officer_role,
+      appointed_on: o.appointed_on,
+      resigned_on: o.resigned_on,
+    }));
+
+  // Build PSC list — only active, strip nulls
+  const activePscs = (pscs?.data.items ?? [])
+    .filter(psc => !psc.ceased && !psc.ceased_on)
+    .map(psc => stripNulls({
+      name: psc.name,
+      kind: psc.kind,
+      natures_of_control: psc.natures_of_control,
+      notified_on: psc.notified_on,
+      is_corporate: psc.kind?.includes('corporate') || undefined,
+      registration_number: psc.identification?.registration_number,
+    }));
+
+  // Build charges — only include outstanding charges in detail, summarise satisfied
+  const chargeItems = charges?.data.items ?? [];
+  const outstandingCharges = chargeItems.filter(c => c.status === 'outstanding');
+  const satisfiedCount = chargeItems.filter(c => c.status !== 'outstanding').length;
+
+  const chargesOutput = outstandingCharges.map(c => stripNulls({
+    status: c.status,
+    created_on: c.created_on,
+    persons_entitled: c.persons_entitled?.map(pe => pe.name),
+    description: Array.isArray(c.particulars) ? c.particulars[0]?.description : c.particulars?.description,
+  }));
+
+  // Insolvency cases
+  const insolvencyCases = (insolvency?.data.cases ?? []).map(ic => ({
+    type: ic.type,
+    dates: ic.dates.map(d => ({ date: d.date, type: d.type })),
+    practitioners: ic.practitioners.map(pr => pr.name),
+  }));
+
+  // Recent filings — compact
+  const recentFilings = (filings?.data.items ?? []).slice(0, 10).map(f => ({
+    category: f.category,
+    date: f.date,
+    description: f.description,
+    type: f.type,
+  }));
+
+  // Assemble result — insights first, details second
+  // Only include sections that have data
+  const result: Record<string, unknown> = {
+    summary: buildSummary(p, riskSummary, officers?.data, charges?.data),
+    risk: riskSummary,
+    company: stripNulls({
       name: p.company_name,
       number: p.company_number,
       status: p.company_status ?? 'unknown',
       type: p.type,
       sector: classifySector(p.sic_codes),
-      sectors: classifySectors(p.sic_codes),
-      sic_codes: p.sic_codes ?? [],
-      date_of_creation: p.date_of_creation ?? null,
-      date_of_cessation: p.date_of_cessation ?? null,
-      age_years: p.date_of_creation ? calculateAgeYears(p.date_of_creation) : null,
+      sic_codes: p.sic_codes,
+      date_of_creation: p.date_of_creation,
+      date_of_cessation: p.date_of_cessation,
+      age_years: p.date_of_creation ? calculateAgeYears(p.date_of_creation) : undefined,
       registered_address: formatAddress(p.registered_office_address),
-      jurisdiction: p.jurisdiction ?? null,
-    },
+      jurisdiction: p.jurisdiction,
+    }),
     officers: {
-      current: (officers?.data.items ?? [])
-        .filter(o => !o.resigned_on)
-        .map(o => ({
-          name: o.name,
-          role: o.officer_role,
-          appointed_on: o.appointed_on ?? null,
-          nationality: o.nationality ?? null,
-          occupation: o.occupation ?? null,
-          officer_id: extractOfficerId(o.links),
-        })),
-      resigned: (officers?.data.items ?? [])
-        .filter(o => o.resigned_on)
-        .map(o => ({
-          name: o.name,
-          role: o.officer_role,
-          appointed_on: o.appointed_on ?? null,
-          resigned_on: o.resigned_on!,
-        })),
+      current: currentOfficers,
+      ...(allResigned.length > 0 ? {
+        recent_resigned: recentResigned,
+        total_resigned: allResigned.length,
+      } : {}),
     },
-    pscs: (pscs?.data.items ?? []).map(psc => ({
-      name: psc.name,
-      kind: psc.kind ?? null,
-      natures_of_control: psc.natures_of_control,
-      notified_on: psc.notified_on,
-      ceased_on: psc.ceased_on ?? null,
-      is_corporate: psc.kind?.includes('corporate') ?? false,
-      registration_number: psc.identification?.registration_number ?? null,
-    })),
-    charges: (charges?.data.items ?? []).map(c => ({
-      status: c.status,
-      created_on: c.created_on ?? null,
-      persons_entitled: c.persons_entitled?.map(pe => pe.name) ?? [],
-      description: Array.isArray(c.particulars) ? c.particulars[0]?.description ?? null : c.particulars?.description ?? null,
-    })),
-    insolvency_cases: (insolvency?.data.cases ?? []).map(ic => ({
-      type: ic.type,
-      dates: ic.dates.map(d => ({ date: d.date, type: d.type })),
-      practitioners: ic.practitioners.map(p => p.name),
-    })),
-    recent_filings: (filings?.data.items ?? []).slice(0, 10).map(f => ({
-      category: f.category,
-      date: f.date,
-      description: f.description,
-      type: f.type,
-    })),
-    summary: buildSummary(p, riskSummary, officers?.data, charges?.data),
-    risk_summary: riskSummary,
-    data_quality: {
-      stale_sources: staleSources,
-      api_status: staleSources.length > 0 ? 'degraded' : 'live',
-    },
-    attribution: 'Contains public sector information licensed under the Open Government Licence v3.0',
   };
+
+  if (activePscs.length > 0) result.pscs = activePscs;
+  if (chargesOutput.length > 0 || satisfiedCount > 0) {
+    result.charges = {
+      outstanding: chargesOutput,
+      satisfied_count: satisfiedCount,
+      total: chargeItems.length,
+    };
+  }
+  if (insolvencyCases.length > 0) result.insolvency_cases = insolvencyCases;
+  if (recentFilings.length > 0) result.recent_filings = recentFilings;
+  if (staleSources.length > 0) result.data_quality = { stale_sources: staleSources };
+  result.attribution = 'Contains public sector information licensed under the Open Government Licence v3.0';
+
+  return result as unknown as DueDiligenceResult;
 }
 
 function buildSummary(
@@ -296,4 +277,14 @@ function formatAddress(address: Record<string, string | undefined> | undefined):
     address.country,
   ].filter(Boolean);
   return parts.join(', ') || 'No address available';
+}
+
+function stripNulls<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== null && value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result as Partial<T>;
 }
