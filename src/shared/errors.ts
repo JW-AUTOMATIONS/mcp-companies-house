@@ -50,10 +50,10 @@ export class InvalidInputError extends ChMcpError {
 }
 
 export class RateLimitedError extends ChMcpError {
-  constructor() {
+  constructor(retryAfterSeconds = 30) {
     super(
       ErrorCode.RATE_LIMITED,
-      'Companies House API rate limit reached. Try again in 30 seconds.'
+      `Companies House API rate limit reached (600 req/5min). Retry in ${retryAfterSeconds} seconds.`
     );
   }
 }

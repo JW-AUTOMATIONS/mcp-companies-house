@@ -65,11 +65,12 @@ const OFFICER_LIST_FIXTURE = {
 
 // --- Helpers ---
 
-function mockFetch(status: number, body: unknown) {
+function mockFetch(status: number, body: unknown, headers: Record<string, string> = {}) {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(body),
+    headers: { get: (name: string) => headers[name] ?? null },
   });
 }
 

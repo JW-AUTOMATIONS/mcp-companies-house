@@ -264,11 +264,20 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 async function main() {
+  // Validate API key before accepting connections
+  const keyCheck = await client.validateApiKey();
+  if (!keyCheck.valid) {
+    process.stderr.write(`ERROR: ${keyCheck.message}\n`);
+    process.exit(1);
+  }
+  logger.info(keyCheck.message);
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   logger.info('Companies House Intelligence MCP server started', {
     version: '0.1.0',
     pro: isPro,
+    compact: isCompact,
     cachePath: DB_PATH,
   });
 }

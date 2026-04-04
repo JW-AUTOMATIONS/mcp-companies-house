@@ -268,11 +268,13 @@ export class ChApiClient {
       }
 
       if (response.status === 429) {
-        logger.warn('Rate limited by Companies House API', { path });
+        const retryAfter = response.headers.get('Retry-After');
+        const retrySeconds = retryAfter ? parseInt(retryAfter, 10) : 30;
+        logger.warn('Rate limited by Companies House API', { path, retryAfter: retrySeconds });
         if (cached) {
           return { data: cached.data, stale: true, source: 'cache' };
         }
-        throw new RateLimitedError();
+        throw new RateLimitedError(retrySeconds);
       }
 
       if (response.status >= 500) {
@@ -331,10 +333,25 @@ export class ChApiClient {
     }
   }
 
+  async validateApiKey(): Promise<{ valid: boolean; message: string }> {
+    try {
+      const response = await this.httpGet('/search/companies?q=test&items_per_page=1');
+      if (response.status === 401) {
+        return { valid: false, message: 'Invalid or expired API key. Register at https://developer.company-information.service.gov.uk/' };
+      }
+      if (response.status === 403) {
+        return { valid: false, message: 'API key lacks required permissions. Check your Companies House application settings.' };
+      }
+      return { valid: true, message: 'API key verified' };
+    } catch {
+      return { valid: true, message: 'Could not verify API key (network error), proceeding anyway' };
+    }
+  }
+
   private async httpGet(path: string): Promise<Response> {
     const url = `${CH_API_BASE}${path}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
     try {
       return await fetch(url, {
         method: 'GET',
