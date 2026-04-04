@@ -110,7 +110,23 @@ async function traceLevel(
   const activePscs = pscs.items.filter(p => !p.ceased && !p.ceased_on);
 
   if (activePscs.length === 0) {
-    warnings.push(`No active PSCs found for ${companyName} (${companyNumber})`);
+    // Check if this is a listed/public company exempt from PSC registration
+    let companyType: string | undefined;
+    try {
+      const { data: profile } = await client.getCompanyProfile(companyNumber);
+      companyType = profile.type;
+    } catch {
+      // Non-critical — just affects the warning message quality
+    }
+    const isListed = companyType === 'plc' || companyType === 'registered-overseas-entity';
+    if (isListed) {
+      warnings.push(
+        `${companyName} (${companyNumber}) is a publicly traded company exempt from individual PSC registration. ` +
+        `Beneficial ownership for listed companies is determined through share registers and regulatory filings, not the PSC register.`
+      );
+    } else {
+      warnings.push(`No active PSCs found for ${companyName} (${companyNumber}). PSC data may not yet be filed or may be exempt.`);
+    }
     return;
   }
 
@@ -134,9 +150,17 @@ async function traceLevel(
       // Check if this is a UK company we can trace further
       const isUkCompany = /^[A-Z]{0,2}\d{6,8}$/.test(entity.company_number);
       if (isUkCompany) {
+        let normalizedChild: string;
+        try {
+          normalizedChild = normalizeCompanyNumber(entity.company_number);
+        } catch {
+          warnings.push(`Could not normalize company number "${entity.company_number}" for ${psc.name}`);
+          ubos.push({ name: psc.name, type: 'company', trail: [...trail, psc.name] });
+          continue;
+        }
         const childTrail = [...trail, psc.name];
         await traceLevel(
-          client, entity.company_number, psc.name,
+          client, normalizedChild, psc.name,
           depth + 1, maxDepth, chain, ubos, warnings, visited, childTrail,
         );
       } else {

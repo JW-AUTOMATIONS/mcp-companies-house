@@ -248,7 +248,7 @@ export const FilingResolutionSchema = z.object({
   description: z.string(),
   document_id: z.string().optional(),
   receive_date: z.string().optional(),
-  subcategory: z.string(),
+  subcategory: z.union([z.string(), z.array(z.string())]),
   type: z.string(),
 }).passthrough();
 
