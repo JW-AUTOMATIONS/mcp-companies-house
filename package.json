@@ -9,11 +9,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/passiveinc/mcp-companies-house"
+    "url": "https://github.com/JW-AUTOMATIONS/mcp-companies-house"
   },
-  "homepage": "https://github.com/passiveinc/mcp-companies-house#readme",
+  "homepage": "https://github.com/JW-AUTOMATIONS/mcp-companies-house#readme",
   "bugs": {
-    "url": "https://github.com/passiveinc/mcp-companies-house/issues"
+    "url": "https://github.com/JW-AUTOMATIONS/mcp-companies-house/issues"
   },
   "type": "module",
   "main": "dist/index.js",
