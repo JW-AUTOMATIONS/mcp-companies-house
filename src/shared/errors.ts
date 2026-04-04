@@ -38,7 +38,7 @@ export class CompanyNotFoundError extends ChMcpError {
   constructor(companyNumber: string) {
     super(
       ErrorCode.COMPANY_NOT_FOUND,
-      `Company ${companyNumber} not found. Verify the 8-digit company number.`
+      `No UK company exists with number ${companyNumber}. Check the number is correct — you can use search_company to find it by name instead.`
     );
   }
 }
@@ -53,7 +53,7 @@ export class RateLimitedError extends ChMcpError {
   constructor(retryAfterSeconds = 30) {
     super(
       ErrorCode.RATE_LIMITED,
-      `Companies House API rate limit reached (600 req/5min). Retry in ${retryAfterSeconds} seconds.`
+      `Companies House API rate limit reached. Try again in ${retryAfterSeconds} seconds.`
     );
   }
 }
@@ -62,7 +62,7 @@ export class ApiUnavailableError extends ChMcpError {
   constructor() {
     super(
       ErrorCode.API_UNAVAILABLE,
-      'Companies House API is temporarily unavailable. Cached data may be served.'
+      'The Companies House API is temporarily unavailable. Please try again in a few minutes.'
     );
   }
 }

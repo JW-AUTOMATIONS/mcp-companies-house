@@ -81,11 +81,13 @@ function toolError(error: unknown) {
   if (error instanceof ChMcpError) {
     return error.toMcpError();
   }
-  const message = error instanceof Error ? error.message : 'Internal server error';
   logger.error('Tool error', { error: error instanceof Error ? error : new Error(String(error)) });
   return {
     isError: true as const,
-    content: [{ type: 'text' as const, text: JSON.stringify({ code: 'INTERNAL_ERROR', message }) }],
+    content: [{ type: 'text' as const, text: JSON.stringify({
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong while fetching data from Companies House. This is likely a temporary issue — please try again.',
+    }) }],
   };
 }
 
