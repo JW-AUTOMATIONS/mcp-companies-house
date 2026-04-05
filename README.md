@@ -1,49 +1,20 @@
 # Companies House Intelligence MCP Server
 
-An intelligent MCP server for UK company data. Not an API wrapper — a compound intelligence layer built on the free Companies House API, covering **5M+ UK companies**.
+An intelligent MCP server for UK company data — not an API wrapper. Compound intelligence tools built on the free Companies House API, covering **5M+ UK companies** across England, Wales, Scotland, and Northern Ireland.
 
-## What This Does
-
-Six intelligent tools that go far beyond raw API access. Company numbers auto-normalize (pads short numbers, handles SC/NI/OC prefixes):
-
-| Tool | What It Does |
-|------|-------------|
-| `get_company_profile` | Quick single-company lookup: status, sector, SIC codes, filing deadlines, charges, insolvency flags, previous names |
-| `search_company` | Search UK companies by name with filtering by status, region, SIC code, and incorporation date range |
-| `deep_due_diligence` | Single-call company intelligence: profile, officers, PSCs, charges, insolvency, filings — with risk scoring, sector classification, and one-line summary |
-| `trace_ownership_chain` | Recursively trace beneficial ownership through corporate PSC chains. Detects circular structures and flags foreign entities |
-| `map_director_network` | Map all appointments for an officer, find co-directors across companies, flag serial directors and formation agents |
-| `detect_filing_anomalies` | Analyse filing history for red flags: overdue accounts, address churn, director turnover, filing gaps |
-
-## When to Use
-
-- **KYC/AML checks** — `deep_due_diligence` gives you a full risk assessment in one call
-- **Beneficial ownership verification** — `trace_ownership_chain` follows corporate PSCs to ultimate beneficial owners
-- **Director background checks** — `map_director_network` reveals all connected companies and co-directors
-- **Compliance monitoring** — `detect_filing_anomalies` flags overdue filings, unusual patterns, and deteriorating filing health
-- **Company research** — `search_company` finds companies matching specific criteria
-
-## When NOT to Use
-
-- Real-time trading decisions (data has caching, not suitable for HFT)
-- Non-UK companies (this covers Companies House England & Wales, Scotland, and Northern Ireland only)
-- Accessing private/restricted company data (this uses the free public API only)
+**What makes this different:** Other Companies House MCP servers map 1:1 to API endpoints. This one does things the raw API can't — risk scoring, ownership chain tracing, director network mapping, filing anomaly detection, and disqualification checks — all in single tool calls.
 
 ## Quick Start
 
-### 1. Get a Free API Key
+**1. Get a free API key** — [Companies House Developer Hub](https://developer.company-information.service.gov.uk/) (takes 2 minutes)
 
-Register at [Companies House Developer Hub](https://developer.company-information.service.gov.uk/) — it's free and takes 2 minutes.
-
-### 2. Install
+**2. Install**
 
 ```bash
 npm install -g @passiveinc/mcp-companies-house
 ```
 
-### 3. Configure
-
-Add to your MCP client configuration:
+**3. Add to your MCP client** (Claude Desktop, Cursor, Cline, etc.)
 
 ```json
 {
@@ -58,89 +29,58 @@ Add to your MCP client configuration:
 }
 ```
 
-Or run directly:
+That's it. Ask your AI assistant "tell me about Tesco" and it will use the tools automatically.
 
-```bash
-CH_API_KEY=your-key-here mcp-companies-house
-```
+## Tools
 
-### Environment Variables
+| Tool | Use When | Example |
+|------|----------|---------|
+| `search_company` | You have a company name but no number | "Find Revolut" |
+| `get_company_profile` | You need basic info for a known company | "What does company 00445790 do?" |
+| `deep_due_diligence` | Risk assessment, KYC, AML, investment research | "Is this company risky?" |
+| `trace_ownership_chain` | Finding ultimate beneficial owners | "Who really owns this company?" |
+| `map_director_network` | Director background checks, finding connected companies | "What other companies does this director run?" |
+| `detect_filing_anomalies` | Compliance monitoring, filing pattern analysis | "Are their filings up to date?" |
+| `search_officers` | Finding a person across all UK companies | "Find director Jane Smith" |
+| `check_disqualifications` | KYC/AML compliance — checking for banned directors | "Have any directors been disqualified?" |
+
+### Tool Chaining
+
+Tools are designed to chain naturally. The descriptions guide LLMs to pick the right tool and pass data between them:
+
+- **Name to insight:** `search_company` → get company number → `deep_due_diligence`
+- **Person to network:** `search_officers` → get officer_id → `map_director_network`
+- **Company to owners:** `deep_due_diligence` → spot corporate PSCs → `trace_ownership_chain`
+- **Risk check:** `deep_due_diligence` + `check_disqualifications` + `detect_filing_anomalies`
+
+## Why This Server?
+
+| | This server | Raw API wrappers |
+|---|---|---|
+| Risk scoring | Low/medium/high with specific flags | None — you get raw JSON |
+| Ownership tracing | Recursive through corporate chains | Manual, one level at a time |
+| Director networks | Cross-company mapping with co-directors | Single company only |
+| Filing anomalies | Pattern detection with health scoring | Raw filing list |
+| Disqualification checks | All directors checked automatically | Manual per-person lookup |
+| Error handling | Graceful degradation with stale cache | Fails on API errors |
+| Token efficiency | Compressed responses, null-stripped | Full API payloads |
+
+## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `CH_API_KEY` | Yes | Companies House API key ([get one free](https://developer.company-information.service.gov.uk/)) |
-| `CH_CACHE_PATH` | No | SQLite cache file path. Default: `~/.cache/mcp-companies-house/cache.db` |
-| `CH_PRO_KEY` | No | Pro tier key for shorter cache TTLs (fresher data) |
-
-## Tool Details
-
-### `get_company_profile`
-
-Quick lookup for a single company. Fastest way to get company details.
-
-**Input:**
-- `company_number` (required) — UK company number (auto-pads, e.g. "123456" → "00123456")
-
-**Returns:** Name, status, type, sector, SIC codes, registered address, filing deadlines, charge/insolvency flags, previous names, company age.
-
-### `search_company`
-
-Search 5M+ UK companies with optional post-filtering.
-
-**Input:**
-- `query` (required) — Company name or keyword
-- `status` — Filter: `active`, `dissolved`, `liquidation`, `receivership`, `administration`
-- `region` — Filter by registered address region (fuzzy match)
-- `incorporated_after` — ISO date string
-- `incorporated_before` — ISO date string
-- `sic_codes` — Array of SIC codes to filter by
-- `limit` — Max results (default 10, max 50)
-
-### `deep_due_diligence`
-
-Comprehensive company report in a single call. Fetches 6 data sources in parallel.
-
-**Input:**
-- `company_number` (required) — 8-digit UK company number
-
-**Returns:** Profile, officers, PSCs, charges, insolvency status, recent filings, risk assessment (low/medium/high with flags), sector classification, and data quality indicators.
-
-### `trace_ownership_chain`
-
-Follow beneficial ownership through corporate structures.
-
-**Input:**
-- `company_number` (required) — Starting company number
-- `max_depth` — Max levels to trace (default 5, max 10)
-
-**Returns:** Ownership chain with percentage bands, circular ownership detection, foreign entity warnings, and ultimate beneficial owners.
-
-### `map_director_network`
-
-Map an officer's company network.
-
-**Input:**
-- `officer_id` (required) — Companies House officer ID
-- `include_resigned` — Include resigned appointments (default false)
-
-**Returns:** All appointments, co-director map (who they serve with across companies), tenure statistics, and flags for serial directors (10+) and formation agents (25+).
-
-### `detect_filing_anomalies`
-
-Analyse filing patterns for compliance red flags.
-
-**Input:**
-- `company_number` (required) — 8-digit UK company number
-- `lookback_months` — Analysis period (default 24, max 120)
-
-**Returns:** Filing health score (healthy/concerning/problematic), anomaly list with severity ratings, upcoming due dates, and filing breakdown by category.
+| `CH_API_KEY` | Yes | Companies House API key ([free](https://developer.company-information.service.gov.uk/)) |
+| `CH_CACHE_PATH` | No | SQLite cache path (default: `~/.cache/mcp-companies-house/cache.db`) |
+| `CH_PRO_KEY` | No | Pro tier key for shorter cache TTLs |
+| `CH_COMPACT` | No | Set to `1` for minimal responses (strips attribution/metadata) |
 
 ## Architecture
 
-- **Cache-first** — SQLite with WAL mode. Configurable TTL per data category. Stale cache served on API errors.
-- **Rate limiting** — Token bucket respecting Companies House 600 req/5min limit.
-- **Graceful degradation** — On 429/5xx/network errors, stale cached data is served with a `stale` flag rather than failing.
-- **Zod validation** — All API responses validated against schemas. Malformed responses trigger cache fallback.
+- **Cache-first**: SQLite with WAL mode, configurable TTL per data category. Stale cache served on API errors rather than failing.
+- **Rate limiting**: Token bucket respecting the 600 requests/5 minutes Companies House limit.
+- **Graceful degradation**: API errors, rate limits, and schema validation failures all fall back to cached data when available.
+- **Zod validation**: All API responses validated. Malformed data triggers cache fallback, not crashes.
+- **Startup validation**: API key verified on boot — fails fast with a clear message if invalid.
 
 ## Data Attribution
 
